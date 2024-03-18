@@ -117,7 +117,7 @@ int main() {
     int eventType, eventButton, xCoord, yCoord;
     while (fscanf(fd, "%2d%2d%4d%4d\n", &eventType, &eventButton, &xCoord, &yCoord) == 4) {
         // Simulate mouse event using parsed values
-        printf("%2d%2d%4d%4d\n", eventType, eventButton, xCoord, yCoord );
+        printf("%2d:%2d:%4d:%4d\n", eventType, eventButton, xCoord, yCoord );
         simulateMouseEvent(eventType, eventButton, xCoord, yCoord);
     }
 
