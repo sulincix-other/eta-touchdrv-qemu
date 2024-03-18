@@ -6,7 +6,7 @@
 #include <errno.h>
 #include <X11/Xlib.h>
 
-#define serial "test"
+#define serial "/dev/ttyS0"
 
 int main(int argc, char **argv) {
     Display *display;
