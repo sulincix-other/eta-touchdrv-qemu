@@ -13,61 +13,42 @@ static struct input_event ev;
 static int fd;
 
 
-int conv(int but){
-    if(but == 1){
-        return BTN_LEFT;
-    }else if(but == 2){
-        return BTN_MIDDLE;
-    }else{
-        return BTN_RIGHT;
-    }
-}
+long width = 1;
+long height = 1;
 
-void simulateMouseEvent(int xtype, int button, int x, int y) {
+void simulateMouseEvent(int xtype, int x, int y) {
 
 
-    if (xtype == 6){
+    if (xtype == 3){
         printf("move: %d %d\n", x, y);
-    struct input_event ev[2], ev_sync;
-    memset(ev, 0, sizeof(ev));
-    memset(&ev_sync, 0, sizeof(ev_sync));
+        struct input_event ev[2], ev_sync;
+        
+        memset(ev, 0, sizeof(ev));
+        memset(&ev_sync, 0, sizeof(ev_sync));
 
-    ev[0].type = EV_ABS;
-    ev[0].code = ABS_X;
-    ev[0].value = x;
-    ev[1].type = EV_ABS;
-    ev[1].code = ABS_Y;
-    ev[1].value = y;
+        ev[0].type = EV_ABS;
+        ev[0].code = ABS_X;
+        ev[0].value = x;
+        ev[1].type = EV_ABS;
+        ev[1].code = ABS_Y;
+        ev[1].value = y;
+        int res_w = write(fd, ev, sizeof(ev));
 
-
-    int res_w = write(fd, ev, sizeof(ev));
-
-
-    ev_sync.type = EV_SYN;
-    ev_sync.value = 0;
-    ev_sync.code = 0;
-    int res_ev_sync = write(fd, &ev_sync, sizeof(ev_sync));
-    }
-
-
-    if (xtype == 5 || xtype == 4){
+    } else if (xtype != 3){
         // Simulate mouse event
-        if (xtype == 5) {
-            printf("press: %d %d \n", button, conv(button));
-        } else {
-            printf("release: %d %d \n", button, conv(button));
-        }
         memset(&ev, 0, sizeof(struct input_event));
         ev.type = EV_KEY;
-        ev.code = conv(button);
-        ev.value = (xtype == 5);
-        write(fd, &ev, sizeof(struct input_event));
-        ev.type = EV_SYN;
-        ev.code = SYN_REPORT;
-        ev.value = 0;
+        ev.code = BTN_LEFT;
+        ev.value = (xtype == 1);
         write(fd, &ev, sizeof(struct input_event));
     }
-
+    // Send synchronization event
+    struct input_event ev_sync;
+    memset(&ev_sync, 0, sizeof(ev_sync));
+    ev_sync.type = EV_SYN;
+    ev_sync.code = SYN_REPORT;
+    ev_sync.value = 0;
+    int res_ev_sync = write(fd, &ev_sync, sizeof(ev_sync));
 }
 
 
@@ -108,17 +89,29 @@ void uinput_done(){
 }
 int main() {
     uinput_init();
-    FILE *fd = fopen("/dev/eta-mouse", "r");
+    FILE *fd = fopen("test", "r");
     if (fd == NULL) {
         perror("Failed to open file");
         return 1;
     }
 
-    int eventType, eventButton, xCoord, yCoord;
-    while (fscanf(fd, "%2d%2d%4d%4d\n", &eventType, &eventButton, &xCoord, &yCoord) == 4) {
-        // Simulate mouse event using parsed values
-        printf("%2d:%2d:%4d:%4d\n", eventType, eventButton, xCoord, yCoord );
-        simulateMouseEvent(eventType, eventButton, xCoord, yCoord);
+    int eventType;
+    long xCoord, yCoord;
+
+    while (fscanf(fd, "%1d%4d%4d\n", &eventType, &xCoord, &yCoord) > 0) {
+        if (eventType == 0){
+            printf("MAX: %d %d\n", xCoord,yCoord);
+            width = xCoord;
+            height = yCoord;
+            continue;
+        }
+        xCoord = (xCoord*1920)/width;
+        yCoord = (yCoord*1080)/height;
+        if(xCoord > 0 && yCoord > 0) {
+            // Simulate mouse event using parsed values
+            printf("%1d:%4d:%4d\n", eventType, xCoord, yCoord );
+            simulateMouseEvent(eventType, xCoord, yCoord);
+        }
     }
 
     uinput_done();
